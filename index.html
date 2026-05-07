@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Password Strength Checker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0d12;
+      --surface:   #13161f;
+      --border:    #1e2230;
+      --text:      #e8eaf2;
+      --muted:     #5a6080;
+      --accent:    #6cf0c2;
+      --warn:      #f7c84a;
+      --danger:    #ff5f7e;
+      --mono:      'Space Mono', monospace;
+      --sans:      'Syne', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 48px 20px 80px;
+      background-image:
+        radial-gradient(ellipse 60% 40% at 70% -10%, #0e2a22 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 10% 80%,  #1a0d22 0%, transparent 60%);
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 4px 12px;
+      border-radius: 2px;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+    h1 {
+      font-family: var(--sans);
+      font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1.1;
+      letter-spacing: -1px;
+    }
+    h1 span { color: var(--accent); }
+    .subtitle {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 400;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+
+    /* ── Input ── */
+    .input-wrap {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .input-label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+    input[type="text"], input[type="password"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 15px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+      letter-spacing: 1px;
+    }
+    input:focus { border-color: var(--accent); }
+
+    .toggle-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 0 16px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: color 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Strength bar ── */
+    .bar-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .bar-seg {
+      flex: 1;
+      height: 5px;
+      border-radius: 99px;
+      background: var(--border);
+      transition: background 0.4s ease;
+    }
+
+    .strength-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 28px;
+      min-height: 18px;
+      transition: color 0.3s;
+    }
+
+    /* ── Checks grid ── */
+    .section-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .checks-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 480px) { .checks-grid { grid-template-columns: 1fr; } }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--muted);
+      transition: color 0.3s;
+    }
+    .check-item.pass { color: var(--text); }
+    .check-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .check-item.pass .check-dot {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    /* ── Suggestions ── */
+    .suggestions { display: flex; flex-direction: column; gap: 8px; }
+    .suggestion-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--mono);
+      line-height: 1.5;
+      transition: border-color 0.3s, color 0.3s;
+      display: none;
+    }
+    .suggestion-item.visible {
+      display: block;
+      animation: fadeUp 0.3s ease forwards;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* strength colour themes */
+    .bar-seg.weak   { background: var(--danger); }
+    .bar-seg.medium { background: var(--warn); }
+    .bar-seg.strong { background: var(--accent); }
+
+    .label-weak   { color: var(--danger) !important; }
+    .label-medium { color: var(--warn)   !important; }
+    .label-strong { color: var(--accent) !important; }
+
+    .suggestion-item.visible.warn   { border-color: #2e2515; color: var(--warn); }
+    .suggestion-item.visible.danger { border-color: #2e1015; color: var(--danger); }
+    .suggestion-item.visible.ok     { border-color: #0d2b22; color: var(--accent); }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 40px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">Security Tool</div>
+  <h1>Password <span>Strength</span><br>Checker</h1>
+  <p class="subtitle">Analyze your password instantly — no data is stored or sent anywhere.</p>
+</header>
+
+<div class="card">
+
+  <!-- Input -->
+  <label class="input-label" for="pwd">Enter your password</label>
+  <div class="input-row" style="margin-bottom:18px">
+    <input type="password" id="pwd" placeholder="Type your password…" autocomplete="off" spellcheck="false" />
+    <button class="toggle-btn" id="toggleBtn" title="Show/Hide">👁</button>
+  </div>
+
+  <!-- Bar -->
+  <div class="bar-row" id="barRow">
+    <div class="bar-seg" id="seg1"></div>
+    <div class="bar-seg" id="seg2"></div>
+    <div class="bar-seg" id="seg3"></div>
+    <div class="bar-seg" id="seg4"></div>
+    <div class="bar-seg" id="seg5"></div>
+  </div>
+  <div class="strength-label" id="strengthLabel">—</div>
+
+  <!-- Checks -->
+  <div class="section-title">Requirements</div>
+  <div class="checks-grid" id="checksGrid">
+    <div class="check-item" data-key="length8"><div class="check-dot"></div> At least 8 characters</div>
+    <div class="check-item" data-key="length12"><div class="check-dot"></div> 12+ characters (recommended)</div>
+    <div class="check-item" data-key="hasLower"><div class="check-dot"></div> Lowercase letters</div>
+    <div class="check-item" data-key="hasUpper"><div class="check-dot"></div> Uppercase letters</div>
+    <div class="check-item" data-key="hasDigit"><div class="check-dot"></div> Numbers</div>
+    <div class="check-item" data-key="hasSpecial"><div class="check-dot"></div> Special characters</div>
+    <div class="check-item" data-key="notCommon"><div class="check-dot"></div> Not a common password</div>
+    <div class="check-item" data-key="noRepeat"><div class="check-dot"></div> No repeated chars</div>
+  </div>
+
+  <!-- Suggestions -->
+  <div class="section-title">Suggestions</div>
+  <div class="suggestions" id="suggestions"></div>
+
+</div>
+
+<footer>All analysis is done locally in your browser. Zero data leaves your device.</footer>
+
+<script>
+  const COMMON = new Set([
+    "password","123456","12345678","password1","qwerty","abc123","111111",
+    "letmein","welcome","monkey","dragon","master","sunshine","princess",
+    "football","iloveyou","admin","login","passw0rd","123456789"
+  ]);
+
+  const input  = document.getElementById("pwd");
+  const segs   = [1,2,3,4,5].map(i => document.getElementById("seg"+i));
+  const label  = document.getElementById("strengthLabel");
+  const sugsEl = document.getElementById("suggestions");
+
+  document.getElementById("toggleBtn").addEventListener("click", () => {
+    input.type = input.type === "password" ? "text" : "password";
+  });
+
+  input.addEventListener("input", () => evaluate(input.value));
+
+  function evaluate(pwd) {
+    const len = pwd.length;
+    const checks = {
+      length8:   len >= 8,
+      length12:  len >= 12,
+      hasLower:  /[a-z]/.test(pwd),
+      hasUpper:  /[A-Z]/.test(pwd),
+      hasDigit:  /\d/.test(pwd),
+      hasSpecial:/[!@#$%^&*()\-_=+\[\]{};':",.<>/?`~\\|]/.test(pwd),
+      notCommon: !COMMON.has(pwd.toLowerCase()),
+      noRepeat:  !(/(.)\1{2,}/.test(pwd)),
+    };
+
+    // Score
+    let score = 0;
+    if (len >= 16) score += 40;
+    else if (len >= 12) score += 30;
+    else if (len >= 8)  score += 20;
+    else                score += 10;
+    if (checks.hasLower)   score += 10;
+    if (checks.hasUpper)   score += 10;
+    if (checks.hasDigit)   score += 10;
+    if (checks.hasSpecial) score += 15;
+    if (!checks.notCommon) score -= 40;
+    if (!checks.noRepeat)  score -= 10;
+    if (/(\d)\1+/.test(pwd) || /012|123|234|345|456|567|678|789/.test(pwd)) score -= 10;
+    if (/abc|bcd|cde|def|efg/.test(pwd.toLowerCase())) score -= 5;
+    score = Math.max(0, Math.min(100, score));
+
+    const strength = score < 40 ? "Weak" : score < 70 ? "Medium" : "Strong";
+
+    updateBar(score, strength, pwd.length);
+    updateChecks(checks);
+    updateSuggestions(checks, pwd);
+  }
+
+  function updateBar(score, strength, len) {
+    const cls = strength.toLowerCase();
+    const filled = Math.round(score / 100 * 5);
+
+    segs.forEach((s, i) => {
+      s.className = "bar-seg";
+      if (len === 0) return;
+      if (i < filled) s.classList.add(cls);
+    });
+
+    label.className = "strength-label";
+    if (len === 0) { label.textContent = "—"; return; }
+    label.classList.add("label-" + cls);
+    label.textContent = strength.toUpperCase() + " — " + score + "/100";
+  }
+
+  function updateChecks(checks) {
+    document.querySelectorAll(".check-item").forEach(el => {
+      const key = el.dataset.key;
+      el.classList.toggle("pass", !!checks[key]);
+    });
+  }
+
+  function updateSuggestions(checks, pwd) {
+    sugsEl.innerHTML = "";
+    const add = (msg, type) => {
+      const d = document.createElement("div");
+      d.className = "suggestion-item visible " + type;
+      d.textContent = msg;
+      sugsEl.appendChild(d);
+    };
+
+    if (!pwd) return;
+
+    if (!checks.notCommon)
+      add("🚨 This is a very commonly used password — avoid it entirely!", "danger");
+    if (!checks.length8)
+      add("❌ Too short. Use at least 8 characters.", "danger");
+    else if (!checks.length12)
+      add("⚠️  Consider making it 12+ characters for better security.", "warn");
+    if (!checks.hasLower)  add("❌ Add lowercase letters (a–z).", "warn");
+    if (!checks.hasUpper)  add("❌ Add uppercase letters (A–Z).", "warn");
+    if (!checks.hasDigit)  add("❌ Include at least one number (0–9).", "warn");
+    if (!checks.hasSpecial)add("❌ Add a special character like @, #, $, %, !.", "warn");
+    if (!checks.noRepeat)  add("⚠️  Avoid repeating characters (e.g. 'aaa', '111').", "warn");
+
+    if (sugsEl.children.length === 0)
+      add("✅ Great password! No obvious weaknesses found.", "ok");
+  }
+</script>
+</body>
+</html>
